@@ -16,9 +16,7 @@ export async function GET(request: Request) {
     // If exact word lookup
     if (word) {
       const definition = await getDefinition(word, language)
-      if (!definition) {
-        return NextResponse.json({ error: "Definition not found" }, { status: 404 })
-      }
+      // Return null instead of 404 for missing definitions - this is expected for most words
       return NextResponse.json(definition)
     }
 
