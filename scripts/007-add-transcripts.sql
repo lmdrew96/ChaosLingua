@@ -1,0 +1,36 @@
+-- Update content items with actual target language transcripts
+-- This adds real Korean and Romanian content for learning
+
+-- Update existing content with transcripts
+UPDATE content_items SET transcript = 'Bună dimineața! Astăzi am pornit să explorez cartierul meu preferat din București. Am trecut pe lângă cofetăria unde cumpăr întotdeauna cozonac. Mirosul de cozonac proaspăt m-a făcut să mă opresc. Am intrat și am comandat o felie cu o cafea. Afară era soare și oamenii se grăbeau la muncă. Mi-am continuat plimbarea prin parcul Cișmigiu. Copacii erau plini de frunze verzi. Am văzut mulți oameni care făceau sport de dimineață. Unii alergau, alții se plimbau cu câinii. Mi se pare că bucureștenii iubesc această oră a dimineții.' WHERE id = 'content-1';
+
+UPDATE content_items SET transcript = '안녕하세요 여러분! 오늘은 제가 좋아하는 케이팝 노래 가사를 분석해 볼게요. 이 노래는 BTS의 "봄날"이에요. 가사가 정말 아름다워요. "보고 싶다" - 이 말은 "I miss you"라는 뜻이에요. 한국어에서 그리움을 표현할 때 자주 사용해요. "얼마나 기다려야 또 몇 밤을 더 새워야" - 이 부분은 기다림의 아픔을 표현해요. 한국 노래에서는 감정을 아주 직접적으로 표현하는 경우가 많아요.' WHERE id = 'content-2';
+
+UPDATE content_items SET transcript = 'Știrile zilei din România. Guvernul a anunțat noi măsuri economice pentru sprijinirea întreprinderilor mici și mijlocii. Ministrul Finanțelor a declarat că aceste măsuri vor intra în vigoare începând cu luna viitoare. În domeniul educației, s-a propus un nou curriculum pentru clasele primare. Profesorii au reacționat mixt la această propunere. Unii consideră că schimbările sunt necesare, în timp ce alții se îngrijorează de implementare. La capitolul sport, echipa națională de fotbal se pregătește pentru calificările la Campionatul European.' WHERE id = 'content-3';
+
+UPDATE content_items SET transcript = '안녕하세요! 런닝맨 하이라이트에 오신 것을 환영합니다. 오늘 에피소드에서 멤버들은 정말 재미있는 게임을 했어요. 유재석이 먼저 술래가 되었어요. 그는 다른 멤버들을 찾아야 했어요. 김종국은 숨는 것을 잘해요. 그는 항상 좋은 장소를 찾아요. 송지효는 이번에 정말 웃겼어요. 그녀는 계속 넘어졌어요. 하하와 이광수는 팀이 되었어요. 그들은 함께 작전을 세웠어요. 결국 김종국 팀이 이겼어요!' WHERE id = 'content-4';
+
+-- Add more Korean content
+INSERT INTO content_items (id, type, language, difficulty, length_minutes, topics, title, description, transcript, thumbnail_url) VALUES
+  ('content-ko-5', 'text', 'ko', 4, 5, ARRAY['daily-life', 'food'], '한국 음식 이야기', 'Korean food culture and recipes', '한국 음식은 정말 다양해요. 가장 유명한 음식은 김치예요. 김치는 배추로 만들어요. 양념에는 고춧가루, 마늘, 생강이 들어가요. 김치는 건강에 좋아요. 비타민이 많이 들어 있어요. 다른 유명한 음식은 비빔밥이에요. 비빔밥은 밥 위에 여러 가지 나물을 올려요. 고추장을 넣고 비벼서 먹어요. 정말 맛있어요! 한국 사람들은 밥을 많이 먹어요. 아침, 점심, 저녁 모두 밥을 먹는 경우가 많아요.', NULL),
+  ('content-ko-6', 'text', 'ko', 3, 4, ARRAY['daily-life', 'transport'], '서울 지하철 타기', 'Using Seoul subway system', '서울 지하철은 정말 편리해요. 역이 많아서 어디든 갈 수 있어요. 지하철 카드를 사면 쉽게 탈 수 있어요. 카드를 찍고 들어가요. 지하철 안에서는 조용히 해야 해요. 전화 통화는 작은 목소리로 해요. 자리가 있으면 앉을 수 있어요. 노약자석은 노인분들을 위한 자리예요. 내릴 때는 "내리겠습니다"라고 말해요. 서울 지하철은 깨끗하고 안전해요.', NULL),
+  ('content-ko-7', 'text', 'ko', 5, 6, ARRAY['culture', 'society'], '한국의 명절', 'Korean traditional holidays', '한국에는 중요한 명절이 두 개 있어요. 설날과 추석이에요. 설날은 음력 1월 1일이에요. 가족들이 모여서 떡국을 먹어요. 어른들께 세배를 드려요. "새해 복 많이 받으세요"라고 인사해요. 아이들은 세뱃돈을 받아요. 추석은 음력 8월 15일이에요. 한가위라고도 해요. 송편을 만들어서 먹어요. 조상님들께 차례를 지내요. 가족들이 함께 성묘를 가요. 명절에는 고속도로가 많이 막혀요.', NULL),
+  ('content-ko-8', 'text', 'ko', 2, 3, ARRAY['daily-life', 'greetings'], '한국어 인사말', 'Korean greetings and expressions', '안녕하세요! 처음 만나서 반갑습니다. 저는 학생이에요. 당신의 이름은 뭐예요? 저는 서울에 살아요. 한국어를 공부하고 있어요. 한국어는 재미있어요. 조금 어렵지만 열심히 해요. 오늘 날씨가 좋아요. 같이 커피 마실까요? 좋아요! 그럼 가요. 안녕히 계세요. 다음에 또 만나요!', NULL)
+ON CONFLICT (id) DO NOTHING;
+
+-- Add more Romanian content  
+INSERT INTO content_items (id, type, language, difficulty, length_minutes, topics, title, description, transcript, thumbnail_url) VALUES
+  ('content-ro-5', 'text', 'ro', 4, 5, ARRAY['daily-life', 'food'], 'Bucătăria românească', 'Traditional Romanian cuisine', 'Bucătăria românească este foarte bogată și gustoasă. Mâncarea tradițională reflectă istoria și cultura țării. Cel mai cunoscut preparat este sarmaua. Sarmalele sunt făcute din carne tocată amestecată cu orez și condimente, învelite în frunze de varză murată. Se servesc cu mămăliguță și smântână. Un alt preparat popular este ciorba de burtă. Este o supă acră și cremoasă, făcută din stomac de vită. Mulți români o consideră cel mai bun remediu după o noapte lungă. Deserturile românești sunt la fel de delicioase. Papanașii sunt niște gogoși umplute cu brânză dulce, servite cu smântână și dulceață.', NULL),
+  ('content-ro-6', 'text', 'ro', 3, 4, ARRAY['daily-life', 'transport'], 'Transportul în București', 'Getting around Bucharest', 'București are un sistem de transport public bine dezvoltat. Metroul este cel mai rapid mod de a călători în oraș. Există patru linii principale de metrou. Biletele se pot cumpăra de la automate sau de la ghișeu. Autobuzele și tramvaiele acoperă zonele unde metroul nu ajunge. Trebuie să validezi biletul când urci. Controlorii verifică des dacă ai bilet valid. Taxiurile sunt destul de ieftine în București. Aplicațiile de ride-sharing sunt de asemenea populare. Mulți oameni preferă să meargă cu bicicleta când vremea este frumoasă.', NULL),
+  ('content-ro-7', 'text', 'ro', 5, 6, ARRAY['culture', 'traditions'], 'Tradiții românești', 'Romanian traditions and customs', 'România are tradiții foarte vechi și frumoase. Crăciunul este una dintre cele mai importante sărbători. Copiii merg din casă în casă să colinde. Cântă cântece tradiționale și primesc dulciuri și bani. Masa de Crăciun include sarmale, cozonac și multe alte bunătăți. Paștele este o altă sărbătoare importantă. Oamenii vopsesc ouă și merg la biserică la slujba de Înviere. Marțișorul este o tradiție de primăvară unică în România. Pe 1 martie, bărbații oferă femeilorsnururi roșii și albe cu un mic pandantiv. Acest dar simbolizează venirea primăverii și aduce noroc.', NULL),
+  ('content-ro-8', 'text', 'ro', 2, 3, ARRAY['daily-life', 'greetings'], 'Salutări în română', 'Romanian greetings and expressions', 'Bună ziua! Mă bucur să vă cunosc. Eu sunt student. Cum vă numiți? Eu locuiesc în București. Învăț limba română. Româna este o limbă frumoasă. Este puțin grea, dar îmi place. Astăzi vremea este plăcută. Vreți să bem o cafea împreună? Cu plăcere! Atunci să mergem. La revedere! Ne vedem data viitoare!', NULL)
+ON CONFLICT (id) DO NOTHING;
+
+-- Add content for Naver Webtoon (the one in the screenshot)
+UPDATE content_items SET transcript = '네이버 웹툰은 한국에서 가장 큰 웹툰 플랫폼이에요. 수천 개의 만화를 무료로 읽을 수 있어요. 매일 새로운 에피소드가 올라와요. 인기 있는 웹툰은 드라마나 영화로 만들어지기도 해요. "여신강림", "이태원 클라쓰", "스위트홈" 같은 작품들이 유명해요. 웹툰 작가들은 아티스트예요. 그들은 그림도 그리고 이야기도 써요. 한국 사람들은 출퇴근할 때 웹툰을 많이 봐요. 지하철에서 스마트폰으로 읽어요. 웹툰은 한국 문화의 중요한 부분이 되었어요.' 
+WHERE title = 'Naver Webtoon Platform' OR description LIKE '%webtoon%';
+
+-- Also insert it if it doesn't exist
+INSERT INTO content_items (id, type, language, difficulty, length_minutes, topics, title, description, transcript, thumbnail_url) VALUES
+  ('content-ko-webtoon', 'text', 'ko', 6, 15, ARRAY['entertainment', 'culture'], 'Naver Webtoon Platform', 'Largest Korean webtoon platform with thousands of titles', '네이버 웹툰은 한국에서 가장 큰 웹툰 플랫폼이에요. 수천 개의 만화를 무료로 읽을 수 있어요. 매일 새로운 에피소드가 올라와요. 인기 있는 웹툰은 드라마나 영화로 만들어지기도 해요. "여신강림", "이태원 클라쓰", "스위트홈" 같은 작품들이 유명해요. 웹툰 작가들은 아티스트예요. 그들은 그림도 그리고 이야기도 써요. 한국 사람들은 출퇴근할 때 웹툰을 많이 봐요. 지하철에서 스마트폰으로 읽어요. 웹툰은 한국 문화의 중요한 부분이 되었어요.', NULL)
+ON CONFLICT (id) DO NOTHING;

@@ -43,12 +43,45 @@ export function FogContent({ content, fogLevel, delayedLookup, onAddToMystery, o
     setDefinitionData(null)
   }, [content.id])
 
-  // Use actual content text, with fallback to sample text
-  const fogText = content.transcript || content.description || (
-    content.language === "ro"
-      ? `Astăzi am mers la casă. Era foarte frumos afară și am decis să plec în parc. Am văzut mulți copii care se jucau.`
-      : `오늘 저는 집에 갔어요. 밖이 아주 좋았고, 공원에 가기로 했어요. 많은 아이들이 놀고 있었어요.`
-  )
+  // Sample texts in target languages
+  const sampleTexts = {
+    ro: [
+      `Astăzi am mers la piață să cumpăr legume proaspete. Am găsit roșii foarte frumoase și castraveți. Vânzătorul mi-a recomandat și niște ardei.`,
+      `Bucureștiul este capitala României. Este un oraș mare cu multe clădiri vechi și parcuri frumoase. Îmi place să merg pe Calea Victoriei.`,
+      `Ieri am văzut un film românesc foarte interesant. A fost despre o familie din sat care se mută la oraș. Actorii au fost excelenți.`,
+    ],
+    ko: [
+      `오늘 저는 서울에서 친구를 만났어요. 우리는 카페에서 커피를 마시고 이야기를 많이 했어요. 정말 즐거운 시간이었어요.`,
+      `한국 음식을 정말 좋아해요. 특히 김치찌개와 비빔밥을 자주 먹어요. 매운 음식도 잘 먹을 수 있어요.`,
+      `주말에 남산타워에 갔어요. 서울 시내가 한눈에 보여서 너무 아름다웠어요. 사진도 많이 찍었어요.`,
+    ]
+  }
+
+  // Check if text is in the expected language (Korean text should contain Hangul)
+  const isKoreanText = (text: string) => /[가-힣]/.test(text)
+
+  // Use actual content text if it matches the language, otherwise use sample text
+  const fogText = useMemo(() => {
+    const rawText = content.transcript || ""
+    
+    if (content.language === "ko") {
+      // For Korean content, check if the text actually contains Korean
+      if (rawText && isKoreanText(rawText)) {
+        return rawText
+      }
+      // Use random Korean sample text based on content id for consistency
+      const index = content.id.charCodeAt(content.id.length - 1) % sampleTexts.ko.length
+      return sampleTexts.ko[index]
+    } else {
+      // For Romanian, use the transcript if available
+      if (rawText && rawText.length > 20) {
+        return rawText
+      }
+      // Use sample Romanian text based on content id for consistency
+      const index = content.id.charCodeAt(content.id.length - 1) % sampleTexts.ro.length
+      return sampleTexts.ro[index]
+    }
+  }, [content.id, content.language, content.transcript])
 
   // Extract interactive words from actual content (words 4+ characters for Romanian, 2+ for Korean)
   const interactiveWords = useMemo(() => {
