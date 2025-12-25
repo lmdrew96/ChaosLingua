@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { Play, FileText, Headphones, Gamepad2, Clock, Star, Flag } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -30,8 +31,11 @@ const typeColors = {
 }
 
 export function ContentCard({ content, onSelect, onFlag, isSelected }: ContentCardProps) {
+  const [imageError, setImageError] = useState(false)
   const difficultyColor =
     content.difficulty <= 3 ? "text-green-400" : content.difficulty <= 6 ? "text-yellow-400" : "text-red-400"
+
+  const showFallback = !content.thumbnailUrl || imageError
 
   return (
     <div
@@ -44,12 +48,13 @@ export function ContentCard({ content, onSelect, onFlag, isSelected }: ContentCa
     >
       {/* Thumbnail or gradient */}
       <div className="relative h-40 overflow-hidden bg-gradient-to-br from-chaos/20 to-fog/20">
-        {content.thumbnailUrl ? (
+        {!showFallback ? (
           <Image
-            src={content.thumbnailUrl || "/placeholder.svg"}
+            src={content.thumbnailUrl!}
             alt={content.title}
             fill
             className="object-cover transition-transform group-hover:scale-105"
+            onError={() => setImageError(true)}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">

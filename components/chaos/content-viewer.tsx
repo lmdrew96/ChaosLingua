@@ -2,11 +2,28 @@
 
 import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { X, Bookmark, Flag, ExternalLink, Volume2, VolumeX, Eye, EyeOff } from "lucide-react"
+import { X, Bookmark, Flag, ExternalLink, Volume2, VolumeX, Eye, EyeOff, Play, FileText, Headphones, Gamepad2, Star } from "lucide-react"
 import Image from "next/image"
+import { cn } from "@/lib/utils"
 import type { ContentItem } from "@/lib/types"
 import { EmbedManager } from "@/components/ui/embed-manager"
 import { DelayedLookupWord } from "@/components/learning/delayed-lookup"
+
+const typeIcons = {
+  video: <Play className="w-8 h-8" />,
+  audio: <Headphones className="w-8 h-8" />,
+  text: <FileText className="w-8 h-8" />,
+  interactive: <Gamepad2 className="w-8 h-8" />,
+  forge_prompt: <Star className="w-8 h-8" />,
+}
+
+const typeColors = {
+  video: "bg-red-500/20 text-red-400",
+  audio: "bg-blue-500/20 text-blue-400",
+  text: "bg-amber-500/20 text-amber-400",
+  interactive: "bg-green-500/20 text-green-400",
+  forge_prompt: "bg-purple-500/20 text-purple-400",
+}
 
 interface ContentViewerProps {
   content: ContentItem
@@ -21,6 +38,7 @@ export function ContentViewer({ content, onClose, onAddToMystery, embedded = fal
   const [isMuted, setIsMuted] = useState(false)
   const [delayedLookupMode, setDelayedLookupMode] = useState(true)
   const [selectedWord, setSelectedWord] = useState<string | null>(null)
+  const [imageError, setImageError] = useState(false)
 
   const handleTextSelect = () => {
     const selection = window.getSelection()?.toString().trim()
@@ -87,9 +105,20 @@ export function ContentViewer({ content, onClose, onAddToMystery, embedded = fal
 
         {/* Content */}
         <div className="p-4" onMouseUp={handleTextSelect}>
-          {content.thumbnailUrl && (
+          {content.thumbnailUrl && !imageError && (
             <div className="relative aspect-video mb-4 rounded-lg overflow-hidden">
-              <Image src={content.thumbnailUrl} alt={content.title} fill className="object-cover" />
+              <Image 
+                src={content.thumbnailUrl} 
+                alt={content.title} 
+                fill 
+                className="object-cover" 
+                onError={() => setImageError(true)}
+              />
+            </div>
+          )}
+          {(!content.thumbnailUrl || imageError) && (
+            <div className="relative aspect-video mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-chaos/20 to-fog/20 flex items-center justify-center">
+              <span className={cn("p-6 rounded-full", typeColors[content.type])}>{typeIcons[content.type]}</span>
             </div>
           )}
           {content.description && (
@@ -200,16 +229,17 @@ export function ContentViewer({ content, onClose, onAddToMystery, embedded = fal
             {/* Fallback Media preview for non-embedded content */}
             {!embedInfo && content.type === "video" && (
               <div className="relative aspect-video rounded-xl overflow-hidden bg-black">
-                {content.thumbnailUrl ? (
+                {content.thumbnailUrl && !imageError ? (
                   <Image
-                    src={content.thumbnailUrl || "/placeholder.svg"}
+                    src={content.thumbnailUrl}
                     alt={content.title}
                     fill
                     className="object-cover"
+                    onError={() => setImageError(true)}
                   />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                    <span>Video player would load here</span>
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-chaos/20 to-fog/20">
+                    <span className={cn("p-6 rounded-full", typeColors[content.type])}>{typeIcons[content.type]}</span>
                   </div>
                 )}
                 <div className="absolute inset-0 flex items-center justify-center">
