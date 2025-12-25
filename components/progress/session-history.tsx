@@ -26,13 +26,15 @@ const moodIcons: Record<SessionMood, React.ReactNode> = {
 }
 
 export function SessionHistory({ sessions }: SessionHistoryProps) {
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
+    const parsed = new Date(date)
+    if (isNaN(parsed.getTime())) return "Unknown date"
     return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
       hour: "numeric",
       minute: "2-digit",
-    }).format(date)
+    }).format(parsed)
   }
 
   return (

@@ -18,15 +18,24 @@ import { BarChart3, ArrowLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { Language } from "@/lib/types"
 
+// Safe date parsing helper
+const safeParseDate = (date: Date | string | null | undefined): Date | null => {
+  if (!date) return null
+  const parsed = new Date(date)
+  return isNaN(parsed.getTime()) ? null : parsed
+}
+
 // Generate activity data from real sessions
-const generateActivityData = (sessions: { startedAt: Date }[]) => {
+const generateActivityData = (sessions: { startedAt: Date | string }[]) => {
   const data: { date: string; count: number }[] = []
   const today = new Date()
   const countByDate = new Map<string, number>()
 
   // Count sessions by date
   sessions.forEach((s) => {
-    const date = new Date(s.startedAt).toISOString().split("T")[0]
+    const parsed = safeParseDate(s.startedAt)
+    if (!parsed) return
+    const date = parsed.toISOString().split("T")[0]
     countByDate.set(date, (countByDate.get(date) || 0) + 1)
   })
 

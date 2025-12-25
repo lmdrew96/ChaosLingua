@@ -101,7 +101,7 @@ export function ErrorCard({ error, onReview, showDetails = false }: ErrorCardPro
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 border-t border-border/50">
           <span className="text-xs text-muted-foreground">
-            Last seen: {new Date(error.lastSeen).toLocaleDateString()}
+            Last seen: {error.lastSeen ? new Date(error.lastSeen).toLocaleDateString() : "Unknown"}
           </span>
 
           <Button

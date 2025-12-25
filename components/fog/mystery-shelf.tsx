@@ -76,7 +76,7 @@ export function MysteryShelf({ mysteries, onResolve, onDelete }: MysteryShelfPro
 
                   <div className="flex items-center gap-4 ml-8 text-xs text-muted-foreground">
                     <span>Encountered {mystery.encounters}x</span>
-                    <span>Added {new Date(mystery.createdAt).toLocaleDateString()}</span>
+                    <span>Added {mystery.createdAt ? new Date(mystery.createdAt).toLocaleDateString() : "Unknown"}</span>
                   </div>
                 </div>
 

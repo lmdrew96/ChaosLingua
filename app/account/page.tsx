@@ -144,12 +144,15 @@ function AccountContent() {
                         <Calendar className="w-4 h-4" />
                         <span>
                           Joined{" "}
-                          {profile?.createdAt
-                            ? new Date(profile.createdAt).toLocaleDateString("en-US", {
-                                month: "long",
-                                year: "numeric",
-                              })
-                            : "Recently"}
+                          {(() => {
+                            if (!profile?.createdAt) return "Recently"
+                            const parsed = new Date(profile.createdAt)
+                            if (isNaN(parsed.getTime())) return "Recently"
+                            return parsed.toLocaleDateString("en-US", {
+                              month: "long",
+                              year: "numeric",
+                            })
+                          })()}
                         </span>
                       </div>
                     </div>
