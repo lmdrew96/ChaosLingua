@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Pencil, Clock, Play, Pause, Check, RotateCcw } from "lucide-react"
+import { Pencil, Clock, Play, Pause, Check, RotateCcw, Loader2 } from "lucide-react"
+import { useForgePrompts } from "@/lib/hooks/use-forge-prompts"
 import type { Language } from "@/lib/types"
 
 interface WritingSprintProps {
@@ -14,7 +15,8 @@ interface WritingSprintProps {
   onExit: () => void
 }
 
-const sprintTopics = {
+// Fallback topics in case database fetch fails
+const fallbackTopics = {
   ro: [
     "Descrie ziua ta perfectă de weekend.",
     "Scrie despre o amintire din copilărie.",
@@ -32,14 +34,27 @@ const sprintTopics = {
 }
 
 export function WritingSprint({ language, duration, onComplete, onExit }: WritingSprintProps) {
+  // Fetch prompts from database
+  const { prompts: dbPrompts, isLoading: promptsLoading } = useForgePrompts({
+    type: "writing_sprint",
+    language,
+    limit: 5,
+    random: true,
+  })
+
   const [phase, setPhase] = useState<"ready" | "writing" | "review">("ready")
   const [timeLeft, setTimeLeft] = useState(duration * 60)
   const [isPaused, setIsPaused] = useState(false)
   const [text, setText] = useState("")
-  const [topic] = useState(() => {
-    const topics = sprintTopics[language]
+
+  // Select a random topic from database prompts or fallback
+  const topic = useMemo(() => {
+    if (dbPrompts && dbPrompts.length > 0) {
+      return dbPrompts[Math.floor(Math.random() * dbPrompts.length)].text
+    }
+    const topics = fallbackTopics[language]
     return topics[Math.floor(Math.random() * topics.length)]
-  })
+  }, [dbPrompts, language])
 
   const wordCount = text
     .trim()
@@ -79,6 +94,16 @@ export function WritingSprint({ language, duration, onComplete, onExit }: Writin
 
   const handleSubmit = () => {
     onComplete(text, wordCount)
+  }
+
+  // Show loading state while fetching prompts
+  if (promptsLoading) {
+    return (
+      <div className="max-w-3xl mx-auto flex flex-col items-center justify-center py-12 space-y-4">
+        <Loader2 className="w-8 h-8 text-forge animate-spin" />
+        <p className="text-muted-foreground">Loading writing prompts...</p>
+      </div>
+    )
   }
 
   return (

@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Zap, Mic, MicOff, ArrowRight, Check, AlertCircle, Square } from "lucide-react"
+import { Zap, Mic, ArrowRight, Check, AlertCircle, Square, Loader2 } from "lucide-react"
+import { useForgePrompts } from "@/lib/hooks/use-forge-prompts"
 import type { Language } from "@/lib/types"
 
 interface QuickFireSessionProps {
@@ -13,7 +14,8 @@ interface QuickFireSessionProps {
   onExit: () => void
 }
 
-const prompts = {
+// Fallback prompts in case database fetch fails
+const fallbackPrompts = {
   ro: [
     "Descrie dimineața ta în 3 propoziții.",
     "Ce ai mâncat azi? De ce?",
@@ -31,6 +33,13 @@ const prompts = {
 }
 
 export function QuickFireSession({ language, onComplete, onExit }: QuickFireSessionProps) {
+  // Fetch prompts from database
+  const { prompts: dbPrompts, isLoading: promptsLoading } = useForgePrompts({
+    type: "quick_fire",
+    language,
+    limit: 5,
+    random: true,
+  })
   const [currentIndex, setCurrentIndex] = useState(0)
   const [response, setResponse] = useState("")
   const [isRecording, setIsRecording] = useState(false)
@@ -45,9 +54,26 @@ export function QuickFireSession({ language, onComplete, onExit }: QuickFireSess
   const audioChunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
-  const currentPrompts = prompts[language]
+  // Use database prompts or fallback to hardcoded ones
+  const currentPrompts = useMemo(() => {
+    if (dbPrompts && dbPrompts.length > 0) {
+      return dbPrompts.map(p => p.text)
+    }
+    return fallbackPrompts[language]
+  }, [dbPrompts, language])
+
   const currentPrompt = currentPrompts[currentIndex]
   const isLastPrompt = currentIndex === currentPrompts.length - 1
+
+  // Show loading state while fetching prompts
+  if (promptsLoading) {
+    return (
+      <div className="max-w-2xl mx-auto flex flex-col items-center justify-center py-12 space-y-4">
+        <Loader2 className="w-8 h-8 text-forge animate-spin" />
+        <p className="text-muted-foreground">Loading prompts...</p>
+      </div>
+    )
+  }
 
   const handleSubmitResponse = () => {
     if (response.trim() || audioUrl) {

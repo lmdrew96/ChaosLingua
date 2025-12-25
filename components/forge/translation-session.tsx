@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Languages, ArrowRight, Check, X, Eye, EyeOff, Square, RotateCcw, Lightbulb } from "lucide-react"
+import { Languages, ArrowRight, Check, X, EyeOff, Square, RotateCcw, Lightbulb, Loader2 } from "lucide-react"
+import { useForgePrompts } from "@/lib/hooks/use-forge-prompts"
 import type { Language } from "@/lib/types"
 
 interface TranslationSessionProps {
@@ -27,8 +28,8 @@ interface TranslationPrompt {
   hint?: string
 }
 
-// Sample translation prompts - in production, these would come from the database
-const translationPrompts: Record<Language, TranslationPrompt[]> = {
+// Fallback translation prompts in case database fetch fails
+const fallbackPrompts: Record<Language, TranslationPrompt[]> = {
   ro: [
     {
       id: "ro1",
@@ -98,15 +99,46 @@ const translationPrompts: Record<Language, TranslationPrompt[]> = {
 type Phase = "translate" | "reveal" | "assess"
 
 export function TranslationSession({ language, onComplete, onExit }: TranslationSessionProps) {
+  // Fetch translation prompts from database
+  const { prompts: dbPrompts, isLoading: promptsLoading } = useForgePrompts({
+    type: "translation",
+    language,
+    limit: 5,
+    random: true,
+  })
+
   const [currentIndex, setCurrentIndex] = useState(0)
   const [phase, setPhase] = useState<Phase>("translate")
   const [userTranslation, setUserTranslation] = useState("")
   const [showHint, setShowHint] = useState(false)
   const [results, setResults] = useState<TranslationResult[]>([])
 
-  const prompts = translationPrompts[language]
+  // Convert database prompts to translation format or use fallback
+  // Database translation prompts have the English source as the text field
+  const prompts: TranslationPrompt[] = useMemo(() => {
+    if (dbPrompts && dbPrompts.length > 0) {
+      return dbPrompts.map((p, idx) => ({
+        id: p.id,
+        source: p.text, // The English text to translate
+        target: "", // User will provide this, no correct answer shown from DB
+        hint: undefined,
+      }))
+    }
+    return fallbackPrompts[language]
+  }, [dbPrompts, language])
+
   const currentPrompt = prompts[currentIndex]
   const isLastPrompt = currentIndex === prompts.length - 1
+
+  // Show loading state while fetching prompts
+  if (promptsLoading) {
+    return (
+      <div className="max-w-2xl mx-auto flex flex-col items-center justify-center py-12 space-y-4">
+        <Loader2 className="w-8 h-8 text-forge animate-spin" />
+        <p className="text-muted-foreground">Loading translation prompts...</p>
+      </div>
+    )
+  }
 
   const handleSubmitTranslation = () => {
     if (userTranslation.trim()) {

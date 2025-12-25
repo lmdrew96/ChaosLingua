@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Volume2, Mic, MicOff, Play, Pause, RotateCcw, ArrowRight, Check, Square } from "lucide-react"
+import { Volume2, Mic, MicOff, Play, Pause, RotateCcw, ArrowRight, Check, Square, Loader2 } from "lucide-react"
+import { useForgePrompts } from "@/lib/hooks/use-forge-prompts"
 import type { Language } from "@/lib/types"
 
 interface ShadowSpeakSessionProps {
@@ -19,13 +20,13 @@ interface AudioClip {
   duration: number
 }
 
-// Sample audio clips - in production, these would come from the database
-const sampleClips: Record<Language, AudioClip[]> = {
+// Fallback audio clips in case database fetch fails
+const fallbackClips: Record<Language, AudioClip[]> = {
   ro: [
     {
       id: "ro1",
       text: "Bună ziua! Cum te numești?",
-      audioUrl: "", // Would be real audio URL
+      audioUrl: "",
       duration: 3,
     },
     {
@@ -90,6 +91,14 @@ const sampleClips: Record<Language, AudioClip[]> = {
 type Phase = "listen" | "shadow" | "compare" | "review"
 
 export function ShadowSpeakSession({ language, onComplete, onExit }: ShadowSpeakSessionProps) {
+  // Fetch shadow speak prompts from database
+  const { prompts: dbPrompts, isLoading: promptsLoading } = useForgePrompts({
+    type: "shadow_speak",
+    language,
+    limit: 5,
+    random: true,
+  })
+
   const [currentIndex, setCurrentIndex] = useState(0)
   const [phase, setPhase] = useState<Phase>("listen")
   const [isPlaying, setIsPlaying] = useState(false)
@@ -100,7 +109,19 @@ export function ShadowSpeakSession({ language, onComplete, onExit }: ShadowSpeak
   const [playingUser, setPlayingUser] = useState(false)
   const [completedClips, setCompletedClips] = useState<string[]>([])
 
-  const clips = sampleClips[language]
+  // Convert database prompts to audio clip format or use fallback
+  const clips: AudioClip[] = useMemo(() => {
+    if (dbPrompts && dbPrompts.length > 0) {
+      return dbPrompts.map((p) => ({
+        id: p.id,
+        text: p.text,
+        audioUrl: "", // TTS will be used
+        duration: Math.ceil(p.text.length / 10), // Estimate duration based on text length
+      }))
+    }
+    return fallbackClips[language]
+  }, [dbPrompts, language])
+
   const currentClip = clips[currentIndex]
   const isLastClip = currentIndex === clips.length - 1
 
@@ -120,6 +141,16 @@ export function ShadowSpeakSession({ language, onComplete, onExit }: ShadowSpeak
       window.speechSynthesis.cancel()
     }
   }, [userAudioUrl])
+
+  // Show loading state while fetching prompts
+  if (promptsLoading) {
+    return (
+      <div className="max-w-2xl mx-auto flex flex-col items-center justify-center py-12 space-y-4">
+        <Loader2 className="w-8 h-8 text-forge animate-spin" />
+        <p className="text-muted-foreground">Loading shadow speak prompts...</p>
+      </div>
+    )
+  }
 
   // Use Web Speech API for TTS as fallback when no audio URL
   const playOriginalAudio = useCallback(() => {
