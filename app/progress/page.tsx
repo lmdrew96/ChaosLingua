@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useUserProfile, useUserStats } from "@/lib/hooks/use-user-data"
 import { useSessions } from "@/lib/hooks/use-sessions"
+import { useProductionGap } from "@/lib/hooks/use-vocabulary"
 import { BarChart3, ArrowLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { Language } from "@/lib/types"
@@ -51,6 +52,7 @@ function ProgressContent() {
   const effectiveLanguage = currentLanguage ?? profile?.primaryLanguage ?? "ro"
 
   const { sessions, isLoading: sessionsLoading } = useSessions({ limit: 50 })
+  const { gap: productionGap, isLoading: gapLoading } = useProductionGap(effectiveLanguage)
 
   const activityData = useMemo(() => generateActivityData(sessions), [sessions])
 
@@ -63,7 +65,7 @@ function ProgressContent() {
     })
   }
 
-  const isLoading = profileLoading || statsLoading || sessionsLoading
+  const isLoading = profileLoading || statsLoading || sessionsLoading || gapLoading
 
   if (isLoading) {
     return (
@@ -121,7 +123,12 @@ function ProgressContent() {
               {/* Activity and gap */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <ActivityHeatmap data={activityData} />
-                <ComprehensionProductionGap data={{ comprehension: 72, production: 45 }} />
+                <ComprehensionProductionGap 
+                  data={{ 
+                    comprehension: productionGap?.comprehension ?? 50, 
+                    production: productionGap?.production ?? 25 
+                  }} 
+                />
               </div>
 
               {/* Insights and history */}

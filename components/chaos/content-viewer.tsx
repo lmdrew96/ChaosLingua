@@ -1,10 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { X, Bookmark, Flag, ExternalLink, Volume2, VolumeX } from "lucide-react"
+import { X, Bookmark, Flag, ExternalLink, Volume2, VolumeX, Eye, EyeOff } from "lucide-react"
 import Image from "next/image"
 import type { ContentItem } from "@/lib/types"
+import { EmbedManager } from "@/components/ui/embed-manager"
+import { DelayedLookupWord } from "@/components/learning/delayed-lookup"
 
 interface ContentViewerProps {
   content: ContentItem
@@ -17,13 +19,48 @@ interface ContentViewerProps {
 export function ContentViewer({ content, onClose, onAddToMystery, embedded = false }: ContentViewerProps) {
   const [selectedText, setSelectedText] = useState("")
   const [isMuted, setIsMuted] = useState(false)
+  const [delayedLookupMode, setDelayedLookupMode] = useState(true)
+  const [selectedWord, setSelectedWord] = useState<string | null>(null)
 
   const handleTextSelect = () => {
     const selection = window.getSelection()?.toString().trim()
     if (selection) {
-      setSelectedText(selection)
+      // If it's a single word and delayed lookup is enabled, show the delayed lookup
+      if (delayedLookupMode && selection.split(/\s+/).length === 1) {
+        setSelectedWord(selection)
+      } else {
+        setSelectedText(selection)
+      }
     }
   }
+
+  const handleWordLearned = useCallback((word: string, selfDiscovered: boolean) => {
+    // In a full implementation, this would update the user's vocabulary tracking
+    console.log(`Word "${word}" learned (${selfDiscovered ? "self-discovered" : "looked up"})`)
+    setSelectedWord(null)
+  }, [])
+
+  // Determine embed type from content
+  const getEmbedInfo = () => {
+    if (!content.sourceUrl) return null
+    
+    if (content.sourceUrl.includes("youtube.com") || content.sourceUrl.includes("youtu.be")) {
+      const videoId = content.sourceUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/)?.[1]
+      if (videoId) return { type: "youtube" as const, id: videoId }
+    }
+    
+    if (content.sourceUrl.includes("soundcloud.com")) {
+      return { type: "soundcloud" as const, url: content.sourceUrl }
+    }
+    
+    if (content.sourceUrl.includes("spotify.com")) {
+      return { type: "spotify" as const, url: content.sourceUrl }
+    }
+    
+    return null
+  }
+
+  const embedInfo = getEmbedInfo()
 
   if (embedded) {
     // Embedded mode - no fixed overlay
@@ -127,8 +164,41 @@ export function ContentViewer({ content, onClose, onAddToMystery, embedded = fal
         {/* Content area */}
         <div className="flex-1 overflow-auto p-4">
           <div className="max-w-4xl mx-auto space-y-6">
-            {/* Media preview */}
-            {content.type === "video" && (
+            {/* Delayed Lookup Toggle */}
+            <div className="flex items-center justify-end">
+              <button
+                onClick={() => setDelayedLookupMode(!delayedLookupMode)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors ${
+                  delayedLookupMode
+                    ? "bg-fog/20 text-fog border border-fog/30"
+                    : "bg-muted text-muted-foreground border border-border"
+                }`}
+              >
+                {delayedLookupMode ? (
+                  <>
+                    <Eye className="w-4 h-4" /> Delayed Lookup On
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="w-4 h-4" /> Instant Lookup
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Embedded Media Player */}
+            {embedInfo && (
+              <EmbedManager
+                type={embedInfo.type}
+                id={embedInfo.type === "youtube" ? embedInfo.id : undefined}
+                url={embedInfo.type !== "youtube" ? embedInfo.url : undefined}
+                title={content.title}
+                autoplay={false}
+              />
+            )}
+
+            {/* Fallback Media preview for non-embedded content */}
+            {!embedInfo && content.type === "video" && (
               <div className="relative aspect-video rounded-xl overflow-hidden bg-black">
                 {content.thumbnailUrl ? (
                   <Image
@@ -150,7 +220,7 @@ export function ContentViewer({ content, onClose, onAddToMystery, embedded = fal
               </div>
             )}
 
-            {content.type === "audio" && (
+            {!embedInfo && content.type === "audio" && (
               <div className="p-6 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-border">
                 <div className="flex items-center gap-4">
                   <div className="w-20 h-20 rounded-lg bg-blue-500/30 flex items-center justify-center">
@@ -208,6 +278,18 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
                     Flag Unknown
                   </Button>
                 </div>
+              </div>
+            )}
+
+            {/* Delayed Lookup Modal for single words */}
+            {selectedWord && (
+              <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-md p-4 z-50">
+                <DelayedLookupWord
+                  word={selectedWord}
+                  language={content.language}
+                  onClose={() => setSelectedWord(null)}
+                  onLearned={handleWordLearned}
+                />
               </div>
             )}
           </div>
