@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Cloud, BookmarkPlus, Eye, EyeOff, Lock, Unlock, Loader2 } from "lucide-react"
@@ -35,15 +35,30 @@ export function FogContent({ content, fogLevel, delayedLookup, onAddToMystery, o
   const [definitionData, setDefinitionData] = useState<Definition | null>(null)
   const [loadingDefinition, setLoadingDefinition] = useState(false)
 
-  // Simulated fog content with some words to interact with
-  const fogText =
+  // Reset state when content changes
+  useEffect(() => {
+    setTrackedWords(new Map())
+    setSelectedWord(null)
+    setShowDefinition(false)
+    setDefinitionData(null)
+  }, [content.id])
+
+  // Use actual content text, with fallback to sample text
+  const fogText = content.transcript || content.description || (
     content.language === "ro"
       ? `Astăzi am mers la casă. Era foarte frumos afară și am decis să plec în parc. Am văzut mulți copii care se jucau.`
       : `오늘 저는 집에 갔어요. 밖이 아주 좋았고, 공원에 가기로 했어요. 많은 아이들이 놀고 있었어요.`
+  )
 
-  // Words that can be interacted with
-  const interactiveWords =
-    content.language === "ro" ? ["casă", "frumos", "parc", "copii"] : ["집", "좋았고", "공원", "아이들"]
+  // Extract interactive words from actual content (words 4+ characters for Romanian, 2+ for Korean)
+  const interactiveWords = useMemo(() => {
+    const words = fogText.split(/\s+/).map(w => w.replace(/[.,!?;:"""'']/g, ""))
+    const uniqueWords = [...new Set(words)]
+    if (content.language === "ko") {
+      return uniqueWords.filter(w => w.length >= 2).slice(0, 15)
+    }
+    return uniqueWords.filter(w => w.length >= 4).slice(0, 15)
+  }, [fogText, content.language])
 
   // Fetch definition when word is selected and can be shown
   useEffect(() => {
@@ -115,6 +130,14 @@ export function FogContent({ content, fogLevel, delayedLookup, onAddToMystery, o
 
   return (
     <div className="space-y-6">
+      {/* Content title */}
+      <div className="p-4 rounded-lg bg-card border border-border">
+        <h2 className="font-semibold text-foreground">{content.title}</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Level {content.difficulty} • {content.lengthMinutes} min • {content.type}
+        </p>
+      </div>
+
       {/* Fog indicator */}
       <div className="flex items-center justify-between p-4 rounded-lg bg-fog/10 border border-fog/20">
         <div className="flex items-center gap-3">
