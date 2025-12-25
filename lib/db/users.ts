@@ -85,37 +85,22 @@ export async function updateUserProfile(
     fogLevel: number
   }>,
 ): Promise<void> {
-  const setParts: string[] = []
-  const values: (string | number | Language[] | Record<Language, number>)[] = []
-
+  // Handle each field individually to avoid SQL injection and parameter issues
   if (updates.primaryLanguage !== undefined) {
-    setParts.push(`primary_language = $${values.length + 1}`)
-    values.push(updates.primaryLanguage)
+    await sql`UPDATE user_profiles SET primary_language = ${updates.primaryLanguage} WHERE id = ${userId}`
   }
   if (updates.languages !== undefined) {
-    setParts.push(`languages = $${values.length + 1}`)
-    values.push(updates.languages)
+    await sql`UPDATE user_profiles SET languages = ${updates.languages} WHERE id = ${userId}`
   }
   if (updates.levels !== undefined) {
-    setParts.push(`levels = $${values.length + 1}`)
-    values.push(updates.levels)
+    await sql`UPDATE user_profiles SET levels = ${JSON.stringify(updates.levels)} WHERE id = ${userId}`
   }
   if (updates.chaosSetting !== undefined) {
-    setParts.push(`chaos_setting = $${values.length + 1}`)
-    values.push(updates.chaosSetting)
+    await sql`UPDATE user_profiles SET chaos_setting = ${updates.chaosSetting} WHERE id = ${userId}`
   }
   if (updates.fogLevel !== undefined) {
-    setParts.push(`fog_level = $${values.length + 1}`)
-    values.push(updates.fogLevel)
+    await sql`UPDATE user_profiles SET fog_level = ${updates.fogLevel} WHERE id = ${userId}`
   }
-
-  if (setParts.length === 0) return
-
-  await sql`
-    UPDATE user_profiles
-    SET ${sql.unsafe(setParts.join(", "))}
-    WHERE id = ${userId}
-  `
 }
 
 // Get or create user stats
