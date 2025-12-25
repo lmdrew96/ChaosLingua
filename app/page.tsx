@@ -1,18 +1,33 @@
 "use client"
 
-import { useState } from "react"
+import { useAuth } from "@/lib/hooks/use-auth"
+import { useRouter } from "next/navigation"
+import { AuthGuard } from "@/components/auth/auth-guard"
 import { AppHeader } from "@/components/layout/app-header"
 import { AppNav } from "@/components/layout/app-nav"
 import { SessionCard } from "@/components/dashboard/session-card"
 import { StatsBar } from "@/components/dashboard/stats-bar"
 import { QuickActions } from "@/components/dashboard/quick-actions"
-import { mockStats, mockUser } from "@/lib/mock-data"
-import { useRouter } from "next/navigation"
+import { useUserProfile, useUserStats } from "@/lib/hooks/use-user-data"
+import { Skeleton } from "@/components/ui/skeleton"
 import type { Language, SessionType } from "@/lib/types"
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter()
-  const [currentLanguage, setCurrentLanguage] = useState<Language>(mockUser.primaryLanguage)
+  const { user } = useAuth()
+  const { profile, isLoading: profileLoading } = useUserProfile()
+  const { stats, isLoading: statsLoading } = useUserStats()
+
+  const currentLanguage: Language = profile?.primaryLanguage || "ro"
+
+  const handleLanguageChange = async (language: Language) => {
+    // Update profile language preference
+    await fetch("/api/user/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ primaryLanguage: language }),
+    })
+  }
 
   const handleSessionStart = (type: SessionType) => {
     const routes: Record<SessionType, string> = {
@@ -33,9 +48,11 @@ export default function DashboardPage() {
     handleSessionStart(random)
   }
 
+  const displayName = user?.display_name || profile?.name || "Explorer"
+
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader currentLanguage={currentLanguage} onLanguageChange={setCurrentLanguage} />
+      <AppHeader currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} />
 
       <div className="flex">
         <AppNav />
@@ -45,12 +62,20 @@ export default function DashboardPage() {
             {/* Welcome Section */}
             <div className="mb-8">
               <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">What kind of session today?</h1>
-              <p className="text-muted-foreground text-lg">Choose your adventure, {mockUser.name}. The chaos awaits.</p>
+              <p className="text-muted-foreground text-lg">Choose your adventure, {displayName}. The chaos awaits.</p>
             </div>
 
             {/* Stats Bar */}
             <div className="mb-8">
-              <StatsBar stats={mockStats} />
+              {statsLoading || profileLoading ? (
+                <div className="flex gap-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-32" />
+                  ))}
+                </div>
+              ) : (
+                <StatsBar stats={stats} />
+              )}
             </div>
 
             {/* Session Grid */}
@@ -110,5 +135,13 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <AuthGuard>
+      <DashboardContent />
+    </AuthGuard>
   )
 }

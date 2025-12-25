@@ -1,40 +1,50 @@
 "use client"
 
 import { useState } from "react"
+import { AuthGuard } from "@/components/auth/auth-guard"
 import { AppHeader } from "@/components/layout/app-header"
 import { AppNav } from "@/components/layout/app-nav"
 import { MysteryShelf } from "@/components/fog/mystery-shelf"
 import { Button } from "@/components/ui/button"
-import { mockMysteries, mockUser } from "@/lib/mock-data"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useUserProfile } from "@/lib/hooks/use-user-data"
+import { useMysteries } from "@/lib/hooks/use-mysteries"
 import { Sparkles, ArrowLeft, Filter } from "lucide-react"
 import { useRouter } from "next/navigation"
-import type { Language, MysteryItem } from "@/lib/types"
+import type { Language } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
-export default function MysteriesPage() {
+function MysteriesContent() {
   const router = useRouter()
-  const [currentLanguage, setCurrentLanguage] = useState<Language>(mockUser.primaryLanguage)
-  const [mysteries, setMysteries] = useState<MysteryItem[]>(mockMysteries)
+  const { profile } = useUserProfile()
+  const currentLanguage: Language = profile?.primaryLanguage || "ro"
   const [filter, setFilter] = useState<"all" | "unresolved" | "resolved">("all")
 
-  const filteredMysteries = mysteries.filter((m) => {
-    if (m.language !== currentLanguage) return false
-    if (filter === "unresolved") return !m.resolved
-    if (filter === "resolved") return m.resolved
-    return true
+  const { mysteries, isLoading, resolveMystery, mutate } = useMysteries({
+    language: currentLanguage,
+    resolved: filter === "all" ? undefined : filter === "resolved",
   })
 
-  const handleResolve = (id: string, meaning: string) => {
-    setMysteries((prev) => prev.map((m) => (m.id === id ? { ...m, resolved: true, resolvedMeaning: meaning } : m)))
+  const handleLanguageChange = async (language: Language) => {
+    await fetch("/api/user/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ primaryLanguage: language }),
+    })
   }
 
-  const handleDelete = (id: string) => {
-    setMysteries((prev) => prev.filter((m) => m.id !== id))
+  const handleResolve = async (id: string, meaning: string) => {
+    await resolveMystery(id, meaning)
+  }
+
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/mysteries/${id}`, { method: "DELETE" })
+    mutate()
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader currentLanguage={currentLanguage} onLanguageChange={setCurrentLanguage} />
+      <AppHeader currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} />
 
       <div className="flex">
         <AppNav />
@@ -79,10 +89,26 @@ export default function MysteriesPage() {
             </div>
 
             {/* Mystery Shelf */}
-            <MysteryShelf mysteries={filteredMysteries} onResolve={handleResolve} onDelete={handleDelete} />
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <Skeleton key={i} className="h-32" />
+                ))}
+              </div>
+            ) : (
+              <MysteryShelf mysteries={mysteries} onResolve={handleResolve} onDelete={handleDelete} />
+            )}
           </div>
         </main>
       </div>
     </div>
+  )
+}
+
+export default function MysteriesPage() {
+  return (
+    <AuthGuard>
+      <MysteriesContent />
+    </AuthGuard>
   )
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { AuthGuard } from "@/components/auth/auth-guard"
 import { AppHeader } from "@/components/layout/app-header"
 import { AppNav } from "@/components/layout/app-nav"
 import { ForgeModeSelector } from "@/components/forge/forge-mode-selector"
@@ -9,19 +10,25 @@ import { WritingSprint } from "@/components/forge/writing-sprint"
 import { ForgeComplete } from "@/components/forge/forge-complete"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
-import { mockUser } from "@/lib/mock-data"
+import { useUserProfile, useUserStats } from "@/lib/hooks/use-user-data"
+import { useSessions } from "@/lib/hooks/use-sessions"
 import { Flame, Play, ArrowLeft, Clock } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { Language, ForgeType } from "@/lib/types"
 
 type SessionPhase = "setup" | "active" | "complete"
 
-export default function ForgePage() {
+function ForgeContent() {
   const router = useRouter()
-  const [currentLanguage, setCurrentLanguage] = useState<Language>(mockUser.primaryLanguage)
+  const { profile } = useUserProfile()
+  const { incrementStats } = useUserStats()
+  const { startSession, endSession } = useSessions()
+
+  const currentLanguage: Language = profile?.primaryLanguage || "ro"
   const [selectedMode, setSelectedMode] = useState<ForgeType | null>(null)
   const [duration, setDuration] = useState(10)
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>("setup")
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
 
   const [sessionStats, setSessionStats] = useState({
     wordsProduced: 0,
@@ -30,16 +37,49 @@ export default function ForgePage() {
     duration: 0,
   })
 
-  const startSession = () => {
+  const handleLanguageChange = async (language: Language) => {
+    await fetch("/api/user/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ primaryLanguage: language }),
+    })
+  }
+
+  const handleStartSession = async () => {
     if (selectedMode) {
+      const session = await startSession({
+        type: "forge-mode",
+        language: currentLanguage,
+      })
+      setActiveSessionId(session.id)
       setSessionPhase("active")
       setSessionStats((prev) => ({ ...prev, duration }))
     }
   }
 
-  const handleQuickFireComplete = (responses: { prompt: string; response: string; selfAssessment: string }[]) => {
+  const handleQuickFireComplete = async (responses: { prompt: string; response: string; selfAssessment: string }[]) => {
     const totalWords = responses.reduce((sum, r) => sum + r.response.split(/\s+/).filter((w) => w.length > 0).length, 0)
     const errorsIdentified = responses.filter((r) => r.selfAssessment.trim().length > 0).length
+
+    await fetch("/api/forge/responses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: activeSessionId,
+        responseText: responses.map((r) => r.response).join("\n\n"),
+        wordCount: totalWords,
+        errorsIdentified,
+        selfCorrections: Math.floor(errorsIdentified * 0.5),
+      }),
+    })
+
+    // End session
+    if (activeSessionId) {
+      await endSession(activeSessionId, {
+        duration: duration * 60,
+        mood: "energizing",
+      })
+    }
 
     setSessionStats({
       wordsProduced: totalWords,
@@ -50,10 +90,30 @@ export default function ForgePage() {
     setSessionPhase("complete")
   }
 
-  const handleWritingComplete = (text: string, wordCount: number) => {
+  const handleWritingComplete = async (text: string, wordCount: number) => {
+    await fetch("/api/forge/responses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: activeSessionId,
+        responseText: text,
+        wordCount,
+        errorsIdentified: Math.floor(wordCount * 0.1),
+        selfCorrections: Math.floor(wordCount * 0.05),
+      }),
+    })
+
+    // End session
+    if (activeSessionId) {
+      await endSession(activeSessionId, {
+        duration: duration * 60,
+        mood: "energizing",
+      })
+    }
+
     setSessionStats({
       wordsProduced: wordCount,
-      errorsIdentified: Math.floor(wordCount * 0.1), // Estimate
+      errorsIdentified: Math.floor(wordCount * 0.1),
       selfCorrections: Math.floor(wordCount * 0.05),
       duration,
     })
@@ -63,6 +123,7 @@ export default function ForgePage() {
   const handleNewSession = () => {
     setSessionPhase("setup")
     setSelectedMode(null)
+    setActiveSessionId(null)
     setSessionStats({ wordsProduced: 0, errorsIdentified: 0, selfCorrections: 0, duration: 0 })
   }
 
@@ -76,7 +137,7 @@ export default function ForgePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader currentLanguage={currentLanguage} onLanguageChange={setCurrentLanguage} />
+      <AppHeader currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} />
 
       <div className="flex">
         <AppNav />
@@ -100,10 +161,8 @@ export default function ForgePage() {
             {/* Setup Phase */}
             {sessionPhase === "setup" && (
               <div className="space-y-8">
-                {/* Mode selector */}
                 <ForgeModeSelector selectedMode={selectedMode} onModeSelect={setSelectedMode} />
 
-                {/* Duration selector */}
                 {selectedMode && (
                   <div className="p-6 rounded-xl border border-border bg-card space-y-4">
                     <div className="flex items-center gap-3">
@@ -132,7 +191,6 @@ export default function ForgePage() {
                   </div>
                 )}
 
-                {/* Philosophy */}
                 <div className="p-6 rounded-xl border border-forge/20 bg-forge/5">
                   <h3 className="font-semibold text-foreground mb-3">The Forge Philosophy</h3>
                   <ul className="space-y-2 text-sm text-muted-foreground">
@@ -155,12 +213,11 @@ export default function ForgePage() {
                   </ul>
                 </div>
 
-                {/* Start button */}
                 <div className="flex justify-center">
                   <Button
                     size="lg"
                     className="bg-forge text-forge-foreground hover:bg-forge/90 px-8"
-                    onClick={startSession}
+                    onClick={handleStartSession}
                     disabled={!selectedMode}
                   >
                     <Play className="w-5 h-5 mr-2" />
@@ -212,5 +269,13 @@ export default function ForgePage() {
         </main>
       </div>
     </div>
+  )
+}
+
+export default function ForgePage() {
+  return (
+    <AuthGuard>
+      <ForgeContent />
+    </AuthGuard>
   )
 }

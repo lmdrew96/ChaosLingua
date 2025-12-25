@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { AuthGuard } from "@/components/auth/auth-guard"
 import { AppHeader } from "@/components/layout/app-header"
 import { AppNav } from "@/components/layout/app-nav"
 import { ErrorCard } from "@/components/errors/error-card"
@@ -8,7 +9,9 @@ import { ErrorReview } from "@/components/errors/error-review"
 import { ErrorStats } from "@/components/errors/error-stats"
 import { WeeklyReport } from "@/components/errors/weekly-report"
 import { Button } from "@/components/ui/button"
-import { mockErrors, mockUser } from "@/lib/mock-data"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useUserProfile } from "@/lib/hooks/use-user-data"
+import { useErrors } from "@/lib/hooks/use-errors"
 import { Flower2, Play, ArrowLeft, Filter, SortAsc } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { Language, ErrorItem, ErrorType } from "@/lib/types"
@@ -25,37 +28,40 @@ const errorTypeFilters: { value: ErrorType | "all"; label: string }[] = [
   { value: "beautiful_failure", label: "Beautiful Failures" },
 ]
 
-export default function ErrorGardenPage() {
+function ErrorGardenContent() {
   const router = useRouter()
-  const [currentLanguage, setCurrentLanguage] = useState<Language>(mockUser.primaryLanguage)
-  const [viewMode, setViewMode] = useState<ViewMode>("browse")
-  const [selectedError, setSelectedError] = useState<ErrorItem | null>(null)
+  const { profile } = useUserProfile()
+  const currentLanguage: Language = profile?.primaryLanguage || "ro"
   const [typeFilter, setTypeFilter] = useState<ErrorType | "all">("all")
+
+  const { errors, isLoading } = useErrors({
+    language: currentLanguage,
+    type: typeFilter === "all" ? undefined : typeFilter,
+  })
+
+  const [viewMode, setViewMode] = useState<ViewMode>("browse")
   const [reviewQueue, setReviewQueue] = useState<ErrorItem[]>([])
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0)
 
-  // Filter errors by language and type
-  const filteredErrors = mockErrors.filter((e) => {
-    if (e.language !== currentLanguage) return false
-    if (typeFilter !== "all" && e.type !== typeFilter) return false
-    return true
-  })
+  const handleLanguageChange = async (language: Language) => {
+    await fetch("/api/user/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ primaryLanguage: language }),
+    })
+  }
 
   // Sort by priority (occurrences) and recency
-  const sortedErrors = [...filteredErrors].sort((a, b) => {
-    // High priority first (3+ occurrences)
+  const sortedErrors = [...errors].sort((a, b) => {
     const aHighPriority = a.occurrences >= 3
     const bHighPriority = b.occurrences >= 3
     if (aHighPriority && !bHighPriority) return -1
     if (!aHighPriority && bHighPriority) return 1
-    // Then by occurrences
     if (b.occurrences !== a.occurrences) return b.occurrences - a.occurrences
-    // Then by recency
     return new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime()
   })
 
   const startReviewSession = () => {
-    // Prioritize high-occurrence errors
     const queue = [...sortedErrors].slice(0, 10)
     setReviewQueue(queue)
     setCurrentReviewIndex(0)
@@ -63,19 +69,16 @@ export default function ErrorGardenPage() {
   }
 
   const handleReviewError = (error: ErrorItem) => {
-    setSelectedError(error)
     setReviewQueue([error])
     setCurrentReviewIndex(0)
     setViewMode("review")
   }
 
   const handleCorrect = () => {
-    console.log("[v0] Error marked as correct:", reviewQueue[currentReviewIndex])
     moveToNextError()
   }
 
   const handleIncorrect = () => {
-    console.log("[v0] Error marked as incorrect:", reviewQueue[currentReviewIndex])
     moveToNextError()
   }
 
@@ -83,7 +86,6 @@ export default function ErrorGardenPage() {
     if (currentReviewIndex < reviewQueue.length - 1) {
       setCurrentReviewIndex((prev) => prev + 1)
     } else {
-      // Review session complete
       setViewMode("browse")
       setReviewQueue([])
       setCurrentReviewIndex(0)
@@ -96,7 +98,7 @@ export default function ErrorGardenPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader currentLanguage={currentLanguage} onLanguageChange={setCurrentLanguage} />
+      <AppHeader currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} />
 
       <div className="flex">
         <AppNav />
@@ -141,10 +143,10 @@ export default function ErrorGardenPage() {
             {viewMode === "browse" && (
               <div className="space-y-8">
                 {/* Stats */}
-                <ErrorStats errors={filteredErrors} />
+                {isLoading ? <Skeleton className="h-24 w-full" /> : <ErrorStats errors={sortedErrors} />}
 
                 {/* Weekly Report */}
-                <WeeklyReport errors={filteredErrors} previousWeekErrors={5} />
+                <WeeklyReport errors={sortedErrors} previousWeekErrors={5} />
 
                 {/* Filters */}
                 <div className="flex flex-wrap items-center gap-4">
@@ -176,7 +178,13 @@ export default function ErrorGardenPage() {
                 </div>
 
                 {/* Error Grid */}
-                {sortedErrors.length > 0 ? (
+                {isLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[...Array(6)].map((_, i) => (
+                      <Skeleton key={i} className="h-48" />
+                    ))}
+                  </div>
+                ) : sortedErrors.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {sortedErrors.map((error) => (
                       <ErrorCard key={error.id} error={error} onReview={handleReviewError} showDetails />
@@ -197,7 +205,6 @@ export default function ErrorGardenPage() {
             {/* Review Mode */}
             {viewMode === "review" && reviewQueue.length > 0 && (
               <div className="space-y-6">
-                {/* Progress */}
                 <div className="flex items-center justify-center gap-4">
                   <span className="text-sm text-muted-foreground">
                     {currentReviewIndex + 1} of {reviewQueue.length}
@@ -219,7 +226,6 @@ export default function ErrorGardenPage() {
                   </div>
                 </div>
 
-                {/* Review Card */}
                 <ErrorReview
                   error={reviewQueue[currentReviewIndex]}
                   onCorrect={handleCorrect}
@@ -232,5 +238,13 @@ export default function ErrorGardenPage() {
         </main>
       </div>
     </div>
+  )
+}
+
+export default function ErrorGardenPage() {
+  return (
+    <AuthGuard>
+      <ErrorGardenContent />
+    </AuthGuard>
   )
 }

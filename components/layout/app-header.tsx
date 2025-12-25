@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Logo } from "@/components/ui/logo"
 import { LanguageSwitcher } from "@/components/dashboard/language-switcher"
 import { Button } from "@/components/ui/button"
@@ -21,11 +22,15 @@ export function AppHeader({ currentLanguage, onLanguageChange }: AppHeaderProps)
           <LanguageSwitcher currentLanguage={currentLanguage} onLanguageChange={onLanguageChange} />
 
           <div className="hidden sm:flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-              <Settings className="w-5 h-5" />
+            <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+              <Link href="/settings">
+                <Settings className="w-5 h-5" />
+              </Link>
             </Button>
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-              <User className="w-5 h-5" />
+            <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+              <Link href="/account">
+                <User className="w-5 h-5" />
+              </Link>
             </Button>
           </div>
         </div>

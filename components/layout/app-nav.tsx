@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { LayoutDashboard, Shuffle, Flower2, Cloud, Flame, Sparkles, BarChart3 } from "lucide-react"
+import { LayoutDashboard, Shuffle, Flower2, Cloud, Flame, Sparkles, BarChart3, Settings, User } from "lucide-react"
 
 const navItems = [
   { href: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -13,6 +13,8 @@ const navItems = [
   { href: "/forge", icon: Flame, label: "The Forge" },
   { href: "/mysteries", icon: Sparkles, label: "Mysteries" },
   { href: "/progress", icon: BarChart3, label: "Progress" },
+  { href: "/settings", icon: Settings, label: "Settings" },
+  { href: "/account", icon: User, label: "Account" },
 ]
 
 export function AppNav() {
