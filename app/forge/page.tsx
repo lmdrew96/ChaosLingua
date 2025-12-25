@@ -7,6 +7,9 @@ import { AppNav } from "@/components/layout/app-nav"
 import { ForgeModeSelector } from "@/components/forge/forge-mode-selector"
 import { QuickFireSession } from "@/components/forge/quick-fire-session"
 import { WritingSprint } from "@/components/forge/writing-sprint"
+import { ShadowSpeakSession } from "@/components/forge/shadow-speak-session"
+import { TranslationSession } from "@/components/forge/translation-session"
+import { ConversationSession } from "@/components/forge/conversation-session"
 import { ForgeComplete } from "@/components/forge/forge-complete"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
@@ -115,6 +118,96 @@ function ForgeContent() {
       wordsProduced: wordCount,
       errorsIdentified: Math.floor(wordCount * 0.1),
       selfCorrections: Math.floor(wordCount * 0.05),
+      duration,
+    })
+    setSessionPhase("complete")
+  }
+
+  const handleShadowSpeakComplete = async (stats: { clipsCompleted: number; totalDuration: number }) => {
+    await fetch("/api/forge/responses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: activeSessionId,
+        responseText: `Shadow Speak: ${stats.clipsCompleted} clips completed`,
+        wordCount: stats.clipsCompleted * 5, // Estimate words per clip
+        errorsIdentified: 0,
+        selfCorrections: 0,
+      }),
+    })
+
+    if (activeSessionId) {
+      await endSession(activeSessionId, {
+        duration: stats.totalDuration * 60,
+        mood: "energizing",
+      })
+    }
+
+    setSessionStats({
+      wordsProduced: stats.clipsCompleted * 5,
+      errorsIdentified: 0,
+      selfCorrections: 0,
+      duration: Math.ceil(stats.totalDuration / 60),
+    })
+    setSessionPhase("complete")
+  }
+
+  const handleTranslationComplete = async (results: { sourceText: string; userTranslation: string; correctTranslation: string; selfAssessment: string }[]) => {
+    const totalWords = results.reduce((sum, r) => sum + r.userTranslation.split(/\s+/).filter((w) => w.length > 0).length, 0)
+    const errorsIdentified = results.filter((r) => r.selfAssessment !== "correct").length
+
+    await fetch("/api/forge/responses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: activeSessionId,
+        responseText: results.map((r) => r.userTranslation).join("\n\n"),
+        wordCount: totalWords,
+        errorsIdentified,
+        selfCorrections: results.filter((r) => r.selfAssessment === "partial").length,
+      }),
+    })
+
+    if (activeSessionId) {
+      await endSession(activeSessionId, {
+        duration: duration * 60,
+        mood: "energizing",
+      })
+    }
+
+    setSessionStats({
+      wordsProduced: totalWords,
+      errorsIdentified,
+      selfCorrections: results.filter((r) => r.selfAssessment === "partial").length,
+      duration,
+    })
+    setSessionPhase("complete")
+  }
+
+  const handleConversationComplete = async (stats: { turnsCompleted: number; wordsProduced: number }) => {
+    await fetch("/api/forge/responses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: activeSessionId,
+        responseText: `Conversation: ${stats.turnsCompleted} turns completed`,
+        wordCount: stats.wordsProduced,
+        errorsIdentified: 0,
+        selfCorrections: 0,
+      }),
+    })
+
+    if (activeSessionId) {
+      await endSession(activeSessionId, {
+        duration: duration * 60,
+        mood: "energizing",
+      })
+    }
+
+    setSessionStats({
+      wordsProduced: stats.wordsProduced,
+      errorsIdentified: 0,
+      selfCorrections: 0,
       duration,
     })
     setSessionPhase("complete")
@@ -241,19 +334,28 @@ function ForgeContent() {
               />
             )}
 
-            {sessionPhase === "active" && selectedMode && !["quick_fire", "writing_sprint"].includes(selectedMode) && (
-              <div className="text-center py-12">
-                <Flame className="w-16 h-16 text-forge mx-auto mb-4 animate-pulse" />
-                <h3 className="text-xl font-semibold text-foreground mb-2">Coming Soon</h3>
-                <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                  {selectedMode === "shadow_speak" && "Shadow Speak mode is being forged..."}
-                  {selectedMode === "translation" && "Translation Practice is being forged..."}
-                  {selectedMode === "conversation" && "Conversation Simulation is being forged..."}
-                </p>
-                <Button variant="outline" onClick={handleExit} className="bg-transparent">
-                  Back to Setup
-                </Button>
-              </div>
+            {sessionPhase === "active" && selectedMode === "shadow_speak" && (
+              <ShadowSpeakSession
+                language={currentLanguage}
+                onComplete={handleShadowSpeakComplete}
+                onExit={handleExit}
+              />
+            )}
+
+            {sessionPhase === "active" && selectedMode === "translation" && (
+              <TranslationSession
+                language={currentLanguage}
+                onComplete={handleTranslationComplete}
+                onExit={handleExit}
+              />
+            )}
+
+            {sessionPhase === "active" && selectedMode === "conversation" && (
+              <ConversationSession
+                language={currentLanguage}
+                onComplete={handleConversationComplete}
+                onExit={handleExit}
+              />
             )}
 
             {/* Complete Phase */}

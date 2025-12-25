@@ -11,9 +11,10 @@ interface ContentViewerProps {
   onClose: () => void
   onAddToMystery: (phrase: string) => void
   onFlagError: (phrase: string, guess: string) => void
+  embedded?: boolean
 }
 
-export function ContentViewer({ content, onClose, onAddToMystery }: ContentViewerProps) {
+export function ContentViewer({ content, onClose, onAddToMystery, embedded = false }: ContentViewerProps) {
   const [selectedText, setSelectedText] = useState("")
   const [isMuted, setIsMuted] = useState(false)
 
@@ -22,6 +23,70 @@ export function ContentViewer({ content, onClose, onAddToMystery }: ContentViewe
     if (selection) {
       setSelectedText(selection)
     }
+  }
+
+  if (embedded) {
+    // Embedded mode - no fixed overlay
+    return (
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="flex-1 min-w-0">
+            <h2 className="font-semibold text-foreground truncate">{content.title}</h2>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>{content.language === "ro" ? "🇷🇴 Romanian" : "🇰🇷 Korean"}</span>
+              <span>•</span>
+              <span>Level {content.difficulty}</span>
+            </div>
+          </div>
+          {content.sourceUrl && (
+            <Button variant="ghost" size="icon" asChild>
+              <a href={content.sourceUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="w-5 h-5" />
+              </a>
+            </Button>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="p-4" onMouseUp={handleTextSelect}>
+          {content.thumbnailUrl && (
+            <div className="relative aspect-video mb-4 rounded-lg overflow-hidden">
+              <Image src={content.thumbnailUrl} alt={content.title} fill className="object-cover" />
+            </div>
+          )}
+          {content.description && (
+            <p className="text-foreground leading-relaxed">{content.description}</p>
+          )}
+          {content.transcript && (
+            <div className="mt-4 p-4 rounded-lg bg-secondary/50">
+              <p className="text-foreground whitespace-pre-wrap">{content.transcript}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Quick actions for selected text */}
+        {selectedText && (
+          <div className="p-4 border-t border-border bg-secondary/30">
+            <p className="text-sm text-muted-foreground mb-2">Selected: "{selectedText}"</p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onAddToMystery(selectedText)
+                  setSelectedText("")
+                }}
+                className="bg-transparent"
+              >
+                <Bookmark className="w-4 h-4 mr-1" />
+                Add to Mystery Shelf
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (

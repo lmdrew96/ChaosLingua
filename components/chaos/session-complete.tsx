@@ -18,7 +18,7 @@ interface SessionCompleteProps {
   }
   onReflectionSubmit: (reflection: string, mood: SessionMood) => void
   onNewSession: () => void
-  onGoHome: () => void
+  onGoHome?: () => void
 }
 
 const moodOptions: { value: SessionMood; icon: React.ReactNode; label: string }[] = [
@@ -101,10 +101,12 @@ export function SessionComplete({ stats, onReflectionSubmit, onNewSession, onGoH
 
       {/* Actions */}
       <div className="flex gap-3 pt-4">
-        <Button variant="outline" className="flex-1 bg-transparent" onClick={onGoHome}>
-          <Home className="w-4 h-4 mr-2" />
-          Dashboard
-        </Button>
+        {onGoHome && (
+          <Button variant="outline" className="flex-1 bg-transparent" onClick={onGoHome}>
+            <Home className="w-4 h-4 mr-2" />
+            Dashboard
+          </Button>
+        )}
         <Button className="flex-1 bg-chaos text-chaos-foreground hover:bg-chaos/90" onClick={onNewSession}>
           <RotateCcw className="w-4 h-4 mr-2" />
           New Session

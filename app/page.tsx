@@ -32,8 +32,8 @@ function DashboardContent() {
   const handleSessionStart = (type: SessionType) => {
     const routes: Record<SessionType, string> = {
       "chaos-window": "/chaos",
-      "playlist-roulette": "/chaos?mode=playlist",
-      "grammar-spiral": "/chaos?mode=grammar",
+      "playlist-roulette": "/playlist",
+      "grammar-spiral": "/grammar-spiral",
       "fog-session": "/fog",
       "forge-mode": "/forge",
       "error-garden": "/errors",
@@ -43,7 +43,7 @@ function DashboardContent() {
   }
 
   const handleSurpriseMe = () => {
-    const sessions: SessionType[] = ["chaos-window", "fog-session", "forge-mode", "error-garden"]
+    const sessions: SessionType[] = ["chaos-window", "fog-session", "forge-mode", "error-garden", "playlist-roulette"]
     const random = sessions[Math.floor(Math.random() * sessions.length)]
     handleSessionStart(random)
   }

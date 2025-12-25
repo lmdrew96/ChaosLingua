@@ -26,6 +26,10 @@ function ChaosContent() {
   const [currentLanguage, setCurrentLanguage] = useState<Language | null>(null)
   const [chaosSetting, setChaosSetting] = useState<ChaosSetting | null>(null)
 
+  // Compute effective values from state or profile
+  const effectiveLanguage = currentLanguage ?? profile?.primaryLanguage ?? "ro"
+  const effectiveChaosSetting = chaosSetting ?? profile?.chaosSetting ?? "guided-random"
+
   const [duration, setDuration] = useState(10)
   const [selectedTopics, setSelectedTopics] = useState<string[]>([])
 

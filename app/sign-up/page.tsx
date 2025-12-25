@@ -45,7 +45,7 @@ export default function SignUpPage() {
     try {
       await signUp(email, password, name)
       setSuccess(true)
-      setTimeout(() => router.push("/"), 2000)
+      setTimeout(() => router.push("/onboarding"), 2000)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed. Please try again.")
     } finally {
