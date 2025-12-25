@@ -253,6 +253,53 @@ Guesses: ${JSON.stringify(guessSummary)}`
     }
   }
 
+  async generateDefinition(
+    word: string,
+    language: Language
+  ): Promise<{
+    definition: string
+    partOfSpeech?: string
+    examples?: string[]
+  } | null> {
+    const languageName = language === "ro" ? "Romanian" : "Korean"
+    
+    const systemPrompt = `You are a dictionary assistant for ${languageName} language learners.
+Generate a concise, learner-friendly definition for the given word.
+Respond in JSON format with:
+{
+  "definition": "brief English definition (1-2 sentences)",
+  "partOfSpeech": "noun/verb/adjective/adverb/etc",
+  "examples": ["example sentence in ${languageName}", "another example"]
+}
+If the word doesn't exist or is not a valid ${languageName} word, respond with: {"error": true}
+Return only valid JSON.`
+
+    const userPrompt = `Define this ${languageName} word: "${word}"`
+
+    try {
+      const response = await this.callClaude(systemPrompt, userPrompt)
+
+      const jsonMatch = response.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) {
+        return null
+      }
+      
+      const parsed = JSON.parse(jsonMatch[0])
+      if (parsed.error) {
+        return null
+      }
+      
+      return {
+        definition: parsed.definition,
+        partOfSpeech: parsed.partOfSpeech,
+        examples: parsed.examples || []
+      }
+    } catch (error) {
+      console.error("AI Definition generation error:", error)
+      return null
+    }
+  }
+
   async generateConversationResponse(
     context: string,
     userMessage: string,

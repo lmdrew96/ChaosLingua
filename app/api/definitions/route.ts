@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { getDefinition, searchDefinitions } from "@/lib/db/definitions"
+import { getDefinition, searchDefinitions, upsertDefinition } from "@/lib/db/definitions"
+import { aiService } from "@/lib/ai-service"
 import type { Language } from "@/lib/types"
 
 export async function GET(request: Request) {
@@ -15,8 +16,25 @@ export async function GET(request: Request) {
 
     // If exact word lookup
     if (word) {
-      const definition = await getDefinition(word, language)
-      // Return null instead of 404 for missing definitions - this is expected for most words
+      // First check database
+      let definition = await getDefinition(word, language)
+      
+      // If not found, try to generate with AI
+      if (!definition && aiService.isConfigured()) {
+        const aiDefinition = await aiService.generateDefinition(word, language)
+        
+        if (aiDefinition) {
+          // Cache the AI-generated definition in database
+          definition = await upsertDefinition({
+            language,
+            word,
+            definition: aiDefinition.definition,
+            partOfSpeech: aiDefinition.partOfSpeech,
+            examples: aiDefinition.examples,
+          })
+        }
+      }
+      
       return NextResponse.json(definition)
     }
 
