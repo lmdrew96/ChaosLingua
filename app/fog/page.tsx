@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
+import { AuthGuard } from "@/components/auth/auth-guard"
 import { AppHeader } from "@/components/layout/app-header"
 import { AppNav } from "@/components/layout/app-nav"
 import { FogSettings } from "@/components/fog/fog-settings"
@@ -8,17 +9,24 @@ import { FogContent } from "@/components/fog/fog-content"
 import { ChaosTimer } from "@/components/chaos/chaos-timer"
 import { SessionComplete } from "@/components/chaos/session-complete"
 import { Button } from "@/components/ui/button"
-import { mockContent, mockUser } from "@/lib/mock-data"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useUserProfile } from "@/lib/hooks/use-user-data"
+import { useContent } from "@/lib/hooks/use-content"
 import { Cloud, Play, ArrowLeft, SkipForward } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { Language, ContentItem, SessionMood } from "@/lib/types"
 
 type SessionPhase = "setup" | "active" | "complete"
 
-export default function FogPage() {
+function FogPageContent() {
   const router = useRouter()
-  const [currentLanguage, setCurrentLanguage] = useState<Language>(mockUser.primaryLanguage)
-  const [fogLevel, setFogLevel] = useState(mockUser.fogLevel)
+  const { profile, isLoading: profileLoading } = useUserProfile()
+  const [currentLanguage, setCurrentLanguage] = useState<Language | null>(null)
+  const [fogLevel, setFogLevel] = useState<number | null>(null)
+
+  // Initialize from profile when loaded
+  const effectiveLanguage = currentLanguage ?? profile?.primaryLanguage ?? "ro"
+  const effectiveFogLevel = fogLevel ?? profile?.fogLevel ?? 70
   const [delayedLookup, setDelayedLookup] = useState(true)
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>("setup")
   const [currentContent, setCurrentContent] = useState<ContentItem | null>(null)
@@ -31,13 +39,16 @@ export default function FogPage() {
     duration: 20,
   })
 
-  // Filter content by language and difficulty (above user level for fog)
-  const fogContent = mockContent.filter((c) => {
-    if (c.language !== currentLanguage) return false
-    // For fog sessions, prefer content above user's level
-    const userLevel = mockUser.levels[currentLanguage]
-    return c.difficulty >= userLevel
+  // Fetch content from API
+  const { content, isLoading: contentLoading } = useContent({
+    language: effectiveLanguage,
   })
+
+  // Filter content for fog sessions (prefer content above user's level)
+  const fogContent = useMemo(() => {
+    const userLevel = profile?.levels?.[effectiveLanguage] ?? 3
+    return content.filter((c) => c.difficulty >= userLevel)
+  }, [content, profile, effectiveLanguage])
 
   const startSession = () => {
     if (fogContent.length > 0) {
@@ -81,9 +92,40 @@ export default function FogPage() {
     setCurrentContent(null)
   }
 
+  const handleLanguageChange = async (language: Language) => {
+    setCurrentLanguage(language)
+    await fetch("/api/user/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ primaryLanguage: language }),
+    })
+  }
+
+  const isLoading = profileLoading || contentLoading
+
+  if (isLoading && sessionPhase === "setup") {
+    return (
+      <div className="min-h-screen bg-background">
+        <AppHeader currentLanguage={effectiveLanguage} onLanguageChange={handleLanguageChange} />
+        <div className="flex">
+          <AppNav />
+          <main className="flex-1 pb-20 md:pb-0">
+            <div className="container mx-auto px-4 py-8 max-w-6xl">
+              <Skeleton className="h-10 w-64 mb-8" />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <Skeleton className="h-64 w-full" />
+                <Skeleton className="h-64 w-full" />
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader currentLanguage={currentLanguage} onLanguageChange={setCurrentLanguage} />
+      <AppHeader currentLanguage={effectiveLanguage} onLanguageChange={handleLanguageChange} />
 
       <div className="flex">
         <AppNav />
@@ -109,7 +151,7 @@ export default function FogPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-6">
                   <FogSettings
-                    fogLevel={fogLevel}
+                    fogLevel={effectiveFogLevel}
                     onFogLevelChange={setFogLevel}
                     delayedLookup={delayedLookup}
                     onDelayedLookupChange={setDelayedLookup}
@@ -219,7 +261,7 @@ export default function FogPage() {
                 <div className="lg:col-span-2">
                   <FogContent
                     content={currentContent}
-                    fogLevel={fogLevel}
+                    fogLevel={effectiveFogLevel}
                     delayedLookup={delayedLookup}
                     onAddToMystery={handleAddToMystery}
                     onWordEncounter={handleWordEncounter}
@@ -241,5 +283,13 @@ export default function FogPage() {
         </main>
       </div>
     </div>
+  )
+}
+
+export default function FogPage() {
+  return (
+    <AuthGuard>
+      <FogPageContent />
+    </AuthGuard>
   )
 }

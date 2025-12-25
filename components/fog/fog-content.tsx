@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Cloud, BookmarkPlus, Eye, EyeOff, Lock, Unlock } from "lucide-react"
+import { Cloud, BookmarkPlus, Eye, EyeOff, Lock, Unlock, Loader2 } from "lucide-react"
 import type { ContentItem } from "@/lib/types"
 
 interface FogContentProps {
@@ -21,19 +21,19 @@ interface TrackedWord {
   definition?: string
 }
 
-// Mock definitions for demo
-const mockDefinitions: Record<string, string> = {
-  frumos: "beautiful, handsome",
-  casă: "house, home",
-  머리: "head, hair",
-  사랑: "love",
-  먹다: "to eat",
+interface Definition {
+  word: string
+  definition: string
+  partOfSpeech?: string
+  examples?: string[]
 }
 
 export function FogContent({ content, fogLevel, delayedLookup, onAddToMystery, onWordEncounter }: FogContentProps) {
   const [trackedWords, setTrackedWords] = useState<Map<string, TrackedWord>>(new Map())
   const [selectedWord, setSelectedWord] = useState<string | null>(null)
   const [showDefinition, setShowDefinition] = useState(false)
+  const [definitionData, setDefinitionData] = useState<Definition | null>(null)
+  const [loadingDefinition, setLoadingDefinition] = useState(false)
 
   // Simulated fog content with some words to interact with
   const fogText =
@@ -45,9 +45,22 @@ export function FogContent({ content, fogLevel, delayedLookup, onAddToMystery, o
   const interactiveWords =
     content.language === "ro" ? ["casă", "frumos", "parc", "copii"] : ["집", "좋았고", "공원", "아이들"]
 
+  // Fetch definition when word is selected and can be shown
+  useEffect(() => {
+    if (selectedWord && showDefinition) {
+      setLoadingDefinition(true)
+      fetch(`/api/definitions?word=${encodeURIComponent(selectedWord)}&language=${content.language}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => setDefinitionData(data))
+        .catch(() => setDefinitionData(null))
+        .finally(() => setLoadingDefinition(false))
+    }
+  }, [selectedWord, showDefinition, content.language])
+
   const handleWordClick = (word: string) => {
     setSelectedWord(word)
     setShowDefinition(false)
+    setDefinitionData(null)
     onWordEncounter(word)
 
     // Track encounters
@@ -159,9 +172,24 @@ export function FogContent({ content, fogLevel, delayedLookup, onAddToMystery, o
                   <Eye className="w-4 h-4 mr-2" />
                   Reveal Definition
                 </Button>
+              ) : loadingDefinition ? (
+                <div className="p-3 rounded-lg bg-secondary/50 flex items-center justify-center">
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  <span className="text-muted-foreground">Loading...</span>
+                </div>
               ) : (
-                <div className="p-3 rounded-lg bg-secondary/50">
-                  <p className="text-foreground">{mockDefinitions[selectedWord] || "Definition not found"}</p>
+                <div className="p-3 rounded-lg bg-secondary/50 space-y-2">
+                  <p className="text-foreground">{definitionData?.definition || "Definition not found"}</p>
+                  {definitionData?.partOfSpeech && (
+                    <p className="text-xs text-muted-foreground italic">{definitionData.partOfSpeech}</p>
+                  )}
+                  {definitionData?.examples && definitionData.examples.length > 0 && (
+                    <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                      {definitionData.examples.slice(0, 2).map((ex, i) => (
+                        <p key={i} className="italic">&ldquo;{ex}&rdquo;</p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

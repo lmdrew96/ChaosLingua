@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
+import { AuthGuard } from "@/components/auth/auth-guard"
 import { AppHeader } from "@/components/layout/app-header"
 import { AppNav } from "@/components/layout/app-nav"
 import { ChaosSettings } from "@/components/chaos/chaos-settings"
@@ -10,17 +11,21 @@ import { ContentViewer } from "@/components/chaos/content-viewer"
 import { SessionComplete } from "@/components/chaos/session-complete"
 import { GuessPrompt } from "@/components/chaos/guess-prompt"
 import { Button } from "@/components/ui/button"
-import { mockContent, mockUser } from "@/lib/mock-data"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useUserProfile } from "@/lib/hooks/use-user-data"
+import { useContent } from "@/lib/hooks/use-content"
 import { Shuffle, Play, ArrowLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { Language, ChaosSetting, ContentItem, SessionMood } from "@/lib/types"
 
 type SessionPhase = "setup" | "active" | "viewing" | "guessing" | "complete"
 
-export default function ChaosPage() {
+function ChaosContent() {
   const router = useRouter()
-  const [currentLanguage, setCurrentLanguage] = useState<Language>(mockUser.primaryLanguage)
-  const [chaosSetting, setChaosSetting] = useState<ChaosSetting>(mockUser.chaosSetting)
+  const { profile, isLoading: profileLoading } = useUserProfile()
+  const [currentLanguage, setCurrentLanguage] = useState<Language | null>(null)
+  const [chaosSetting, setChaosSetting] = useState<ChaosSetting | null>(null)
+
   const [duration, setDuration] = useState(10)
   const [selectedTopics, setSelectedTopics] = useState<string[]>([])
 
@@ -35,12 +40,18 @@ export default function ChaosPage() {
     duration: 0,
   })
 
-  // Filter content by language and topics
-  const filteredContent = mockContent.filter((c) => {
-    if (c.language !== currentLanguage) return false
-    if (selectedTopics.length > 0 && !c.topics.some((t) => selectedTopics.includes(t))) return false
-    return true
+  // Fetch content from API
+  const { content, isLoading: contentLoading } = useContent({
+    language: effectiveLanguage,
   })
+
+  // Filter content by topics locally
+  const filteredContent = useMemo(() => {
+    return content.filter((c) => {
+      if (selectedTopics.length > 0 && !c.topics.some((t) => selectedTopics.includes(t))) return false
+      return true
+    })
+  }, [content, selectedTopics])
 
   const shuffleContent = useCallback(() => {
     const shuffled = [...filteredContent].sort(() => Math.random() - 0.5)
@@ -89,9 +100,41 @@ export default function ChaosPage() {
     setContentQueue([])
   }
 
+  const handleLanguageChange = async (language: Language) => {
+    setCurrentLanguage(language)
+    await fetch("/api/user/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ primaryLanguage: language }),
+    })
+  }
+
+  const isLoading = profileLoading || contentLoading
+
+  if (isLoading && sessionPhase === "setup") {
+    return (
+      <div className="min-h-screen bg-background">
+        <AppHeader currentLanguage={effectiveLanguage} onLanguageChange={handleLanguageChange} />
+        <div className="flex">
+          <AppNav />
+          <main className="flex-1 pb-20 md:pb-0">
+            <div className="container mx-auto px-4 py-8 max-w-6xl">
+              <Skeleton className="h-10 w-64 mb-8" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Skeleton key={i} className="h-48 w-full" />
+                ))}
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader currentLanguage={currentLanguage} onLanguageChange={setCurrentLanguage} />
+      <AppHeader currentLanguage={effectiveLanguage} onLanguageChange={handleLanguageChange} />
 
       <div className="flex">
         <AppNav />
@@ -116,7 +159,7 @@ export default function ChaosPage() {
             {sessionPhase === "setup" && (
               <div className="space-y-6">
                 <ChaosSettings
-                  chaosSetting={chaosSetting}
+                  chaosSetting={effectiveChaosSetting}
                   onChaosSettingChange={setChaosSetting}
                   duration={duration}
                   onDurationChange={setDuration}
@@ -238,5 +281,13 @@ export default function ChaosPage() {
         </main>
       </div>
     </div>
+  )
+}
+
+export default function ChaosPage() {
+  return (
+    <AuthGuard>
+      <ChaosContent />
+    </AuthGuard>
   )
 }
