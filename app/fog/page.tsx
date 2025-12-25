@@ -44,10 +44,13 @@ function FogPageContent() {
     language: effectiveLanguage,
   })
 
-  // Filter content for fog sessions (prefer content above user's level)
+  // Filter content for fog sessions (prefer content at or above user's level)
+  // If no content above level, include all content
   const fogContent = useMemo(() => {
     const userLevel = profile?.levels?.[effectiveLanguage] ?? 3
-    return content.filter((c) => c.difficulty >= userLevel)
+    const aboveLevel = content.filter((c) => c.difficulty >= userLevel)
+    // If we have content above level, use it; otherwise use all content
+    return aboveLevel.length > 0 ? aboveLevel : content
   }, [content, profile, effectiveLanguage])
 
   const startSession = () => {
