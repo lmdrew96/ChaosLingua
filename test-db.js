@@ -1,5 +1,5 @@
 const { neon } = require('@neondatabase/serverless');
-require('dotenv').config({ path: '.env.local' });
+require('dotenv').config({ path: '.env' });
 
 async function test() {
   console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
