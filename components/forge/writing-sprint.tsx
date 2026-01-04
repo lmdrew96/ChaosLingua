@@ -248,3 +248,5 @@ export function WritingSprint({ language, duration, onComplete, onExit }: Writin
     </div>
   )
 }
+
+export { WritingSprint }

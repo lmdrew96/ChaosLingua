@@ -142,3 +142,14 @@ export async function markGuessAsCreative(guessId: string): Promise<void> {
     WHERE id = ${guessId}
   `
 }
+
+// Alias for context-agent compatibility
+export async function getUserGuesses(
+  userId: string,
+  options?: {
+    language?: Language
+    limit?: number
+  }
+): Promise<UserGuess[]> {
+  return getGuessesByUser(userId, options)
+}

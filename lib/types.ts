@@ -209,3 +209,131 @@ export interface HangulProgress {
   mastered: boolean
   lastPracticed: Date
 }
+
+// ========================================
+// GRADING SYSTEM TYPES
+// ========================================
+
+// Grammar rule from linguistic resources
+export interface GrammarRule {
+  id: string
+  language: Language
+  category: string
+  ruleName: string
+  description: string
+  difficultyLevel: number
+  examples: GrammarExample[]
+  gfRglReference?: string
+  source: "gf-rgl" | "multext-east" | "korpora" | "kli" | "manual"
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface GrammarExample {
+  correct: string
+  incorrect: string
+  explanation: string
+}
+
+// Pronunciation phoneme
+export interface PronunciationPhoneme {
+  id: string
+  language: Language
+  phoneme: string
+  ipa: string
+  description?: string
+  commonErrors: string[]
+  exampleWords?: string[]
+  createdAt: Date
+}
+
+// Forge submission for grading
+export interface ForgeSubmission {
+  id: string
+  userId: string
+  sessionId?: string
+  forgeType: ForgeType
+  promptId?: string
+  submissionText?: string
+  submissionAudioUrl?: string
+  transcript?: string
+  language: Language
+  createdAt: Date
+}
+
+// Grading result from AI agents
+export interface GradingResult {
+  id: string
+  submissionId: string
+  overallScore: number
+  grammarScore?: number
+  vocabularyScore?: number
+  naturalnessScore?: number
+  pronunciationScore?: number
+  corrections: GradingCorrection[]
+  feedback: string
+  suggestions: string[]
+  grammarIssues: GrammarIssue[]
+  vocabularyGaps: string[]
+  pronunciationErrors: PronunciationError[]
+  gradedAt: Date
+  agentVersion: string
+}
+
+export interface GradingCorrection {
+  original: string
+  corrected: string
+  explanation: string
+  ruleId?: string
+  incorrect?: string
+  correct?: string
+  type?: string
+  isRecurring?: boolean
+}
+
+export interface GrammarIssue {
+  ruleId?: string
+  category: string
+  severity: "low" | "medium" | "high"
+  position?: number
+  description?: string
+  explanation?: string
+  suggestion?: string
+}
+
+export interface PronunciationError {
+  phoneme: string
+  word: string
+  confidence: number
+  severity?: "low" | "medium" | "high"
+}
+
+// Proficiency pattern tracking
+export interface ProficiencyPattern {
+  id: string
+  userId: string
+  language: Language
+  category: "grammar" | "vocabulary" | "pronunciation" | "naturalness"
+  patternType: string
+  grammarRuleId?: string
+  occurrences: number
+  correctUses: number
+  incorrectUses: number
+  masteryLevel: number
+  firstSeen: Date
+  lastSeen: Date
+  lastCorrect?: Date
+  lastIncorrect?: Date
+}
+
+// Context for grading agents
+export interface GradingContext {
+  userId: string
+  language: Language
+  userLevel: number
+  grammarRules: GrammarRule[]
+  recentErrors: ErrorItem[]
+  recentGuesses: UserGuess[]
+  proficiencyPatterns: ProficiencyPattern[]
+  vocabularyTracking: VocabularyTracking[]
+}

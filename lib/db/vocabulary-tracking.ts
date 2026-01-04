@@ -133,3 +133,25 @@ export async function getVocabularyStats(
     gapWords: Number(stats.gap) || 0
   }
 }
+
+// Get user vocabulary tracking for grading context
+export async function getUserVocabularyTracking(
+  userId: string,
+  options?: {
+    language?: Language
+    limit?: number
+  }
+): Promise<VocabularyTracking[]> {
+  const langFilter = options?.language ? sql`AND language = ${options.language}` : sql``
+  const limit = options?.limit ?? 100
+
+  const result = await sql`
+    SELECT * FROM vocabulary_tracking
+    WHERE user_id = ${userId} ${langFilter}
+    ORDER BY last_recognized DESC NULLS LAST, last_produced DESC NULLS LAST
+    LIMIT ${limit}
+  `
+  
+  return result.map(rowToTracking)
+}
+
