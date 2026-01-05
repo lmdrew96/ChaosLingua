@@ -2,7 +2,7 @@
 name: Brainstorm
 description: Interactive brainstorming and solution exploration with research
 argument-hint: Describe the problem, goal, or idea to explore
-tools: ['search', 'web/fetch', 'github/search_code', 'github/get_issue', 'agent', 'read/problems', 'search/changes', 'web/githubRepo']
+tools: ['read', 'search', 'web', 'github/get_commit', 'github/get_file_contents', 'github/list_branches', 'github/list_commits', 'github/search_code', 'github/search_issues', 'github/search_repositories', 'github/search_users', 'io.github.chromedevtools/chrome-devtools-mcp/*', 'github/search_code', 'upstash/context7/*', 'github/get_issue', 'github/search_code', 'memory/*', 'sequential-thinking/*', 'playwright/*', 'agent', 'todo']
 handoffs:
   - label: Create Plan
     agent: Plan
