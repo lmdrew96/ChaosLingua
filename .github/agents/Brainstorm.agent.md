@@ -2,7 +2,7 @@
 name: Brainstorm
 description: Interactive brainstorming and solution exploration with research
 argument-hint: Describe the problem, goal, or idea to explore
-tools: ['search', 'web/fetch', 'github/search_code', 'github/get_issue', 'agent', 'read/problems', 'search/changes', 'web/githubRepo']
+tools: ['read/getNotebookSummary', 'read/problems', 'read/readFile', 'edit/createJupyterNotebook', 'edit/editNotebook', 'search', 'web', 'github/search_code', 'github/search_repositories', 'github/search_code', 'github/search_repositories', 'upstash/context7/*', 'github/get_issue', 'github/search_code', 'memory/*', 'sequential-thinking/*', 'agent', 'ms-toolsai.jupyter/configureNotebook', 'ms-toolsai.jupyter/listNotebookPackages', 'ms-toolsai.jupyter/installNotebookPackages', 'todo']
 handoffs:
   - label: Create Plan
     agent: Plan
@@ -90,7 +90,8 @@ Your role is to collaborate with the user through conversation to explore proble
 2. **fetch** - Pull documentation or examples from discovered resources
 3. **github/search_code** - Find real implementation examples
 4. **github/search_repositories** - Discover relevant projects or tools
-5. **runSubagent** - Delegate focused research if needed (use sparingly)
+5. **edit/createJupyterNotebook** - Keep track of user decisions, discovered resources, workflow suggestions, etc.
+6. **runSubagent** - Delegate focused research if needed (use sparingly)
 
 Use tools BEFORE making recommendations. Research beats guessing.
 </tool_usage_priority>

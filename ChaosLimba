@@ -1,0 +1,65 @@
+Help me create a .ipynb Notebook to achieve my vision. I want to make ChaosLingua a longer term, more innovative project. I've been looking for models on HuggingFace to incorporate into the app, but I'm worried about achieving native-level model fluency in target languages--particularly Romanian.
+
+---
+
+Model Goal: Understanding colloquial Romanian and the nuances of the language to a point of being able to distinguish why a user gave the answer that they did and how to point their thinking in the right direction if incorrect.
+I've found some really good datasets, but they aren't being used by the kinds of models that I need. And while there are some really good models out there passing multilingual benchmarks, I find myself wanting pared and fine-tuned versions. 
+
+---
+
+Important note: I'm a full-time first gen college student working part-time. I don't have a budget. The cheaper the better. I'm open to more complex suggestions if they're completely free.
+
+---
+
+###Datasets:
+
+https://datacollective.mozillafoundation.org/api/datasets/cmj8u3pr700o1nxxbx35tiwrn/download
+https://huggingface.co/api/datasets/qmeeus/vp-er-10l/parquet/ro/train (already uploaded dataset.parquet to Kaggle)
+
+---
+
+The RACAI-USPDATRO and RoDia datasets are already uploaded to Kaggle as well.
+
+---
+
+Paths:
+/kaggle/input/vp-er-10l-data/dataset.parquet
+/kaggle/input/rodia-set/train.csv
+/kaggle/input/rodia-set/test.csv
+/kaggle/input/rodia-set/data/*.wav
+/kaggle/input/racai-uspdatro/text/text/*.txt
+/kaggle/input/racai-uspdatro/conllup/conllup/*.conllup
+/kaggle/input/racai-uspdatro/audio/audio/*.wav
+/kaggle/input/racai-uspdatro/metadata.csv
+
+---
+
+```
+import requests
+from huggingface_hub.file_download import build_hf_headers
+from mlcroissant import Dataset
+
+# Login using e.g. `huggingface-cli login` to access this dataset
+headers = build_hf_headers()  # handles authentication
+jsonld = requests.get("https://huggingface.co/api/datasets/espnet/yodas-granary/croissant", headers=headers).json()
+ds = Dataset(jsonld=jsonld)
+records = ds.records("Romanian")
+```
+
+---
+
+```
+import requests
+from huggingface_hub.file_download import build_hf_headers
+from mlcroissant import Dataset
+
+# Login using e.g. `huggingface-cli login` to access this dataset
+headers = build_hf_headers()  # handles authentication
+jsonld = requests.get("https://huggingface.co/api/datasets/phonemetransformers/IPA-CHILDES/croissant", headers=headers).json()
+ds = Dataset(jsonld=jsonld)
+records = ds.records("Romanian")
+```
+
+---
+
+I already have both HF and MCD APIs available.
